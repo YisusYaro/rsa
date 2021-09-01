@@ -38,11 +38,15 @@ func main() {
 		case "2":
 			fmt.Println("Ingresa el nombre del usuario: ")
 			userName, _ := reader.ReadString('\n')
-			fmt.Println(encryptor.ExportRsaPrivateKeyAsPemStr(searchUserByName(userName, listUsers).PrivateKey))
+			fmt.Println("Clave Privada:")
+			fmt.Println(strings.Replace(encryptor.ExportRsaPrivateKeyAsPemStr(searchUserByName(userName, listUsers).PrivateKey), "\n", "!", -1))
 		case "3":
 			fmt.Println("Ingresa el nombre del usuario: ")
 			userName, _ := reader.ReadString('\n')
-			fmt.Println(encryptor.ExportRsaPublicKeyAsPemStr(searchUserByName(userName, listUsers).PublicKey))
+			encrypted, _ := encryptor.ExportRsaPublicKeyAsPemStr(searchUserByName(userName, listUsers).PublicKey)
+			encryptedFormatted := strings.Replace(encrypted, "\n", "!", -1)
+			fmt.Println("Clave Publica:")
+			fmt.Println(encryptedFormatted)
 		case "4":
 			// fmt.Println("Ingresa su contraseña: ")
 			// plainPassword, _ := reader.ReadString('\n')
@@ -52,12 +56,15 @@ func main() {
 			plainPassword = strings.Replace(plainPassword, "\n", "", -1)
 
 			fmt.Println("Ingresa su clave publica: ")
-			publicKey, _ := reader.ReadString('*')
-			publicKey = strings.Replace(publicKey, "*", "", -1)
+			publicKey, _ := reader.ReadString('\n')
+			publicKey = strings.Replace(publicKey, "\n", "", -1)
+			publicKey = strings.Replace(publicKey, "!", "\n", -1)
+
+			fmt.Print(publicKey)
 
 			pub_parsed, _ := encryptor.ParseRsaPublicKeyFromPemStr(publicKey)
 
-			fmt.Println("\n\nContraseña encriptada", encryptor.Encrypt(pub_parsed, plainPassword))
+			fmt.Println("\n\nContraseña encriptada: ", encryptor.Encrypt(pub_parsed, plainPassword))
 		case "5":
 			// fmt.Println("Ingresa su contraseña: ")
 			// plainPassword, _ := reader.ReadString('\n')
@@ -67,14 +74,15 @@ func main() {
 			encryptedPassword = strings.Replace(encryptedPassword, "\n", "", -1)
 
 			fmt.Println("Ingresa su clave privada: ")
-			privateKey, _ := reader.ReadString('*')
-			privateKey = strings.Replace(privateKey, "*", "", -1)
+			privateKey, _ := reader.ReadString('\n')
+			privateKey = strings.Replace(privateKey, "\n", "", -1)
+			privateKey = strings.Replace(privateKey, "!", "\n", -1)
 
 			priv_parsed, _ := encryptor.ParseRsaPrivateKeyFromPemStr(privateKey)
 
 			encryptor.Decrypt(priv_parsed, encryptedPassword)
 
-			fmt.Println("\n\nContraseña desencriptada", encryptor.Decrypt(priv_parsed, encryptedPassword))
+			fmt.Println("\n\nContraseña desencriptada: ", encryptor.Decrypt(priv_parsed, encryptedPassword))
 
 		}
 	}
@@ -94,7 +102,6 @@ func menu() string {
 	fmt.Println("3. Obtener llave publica de un usuario")
 	fmt.Println("4. Encriptar contraseña")
 	fmt.Println("5. Desencriptar contraseña")
-	fmt.Println("6. Salir")
 
 	fmt.Print("-> ")
 	text, _ := reader.ReadString('\n')

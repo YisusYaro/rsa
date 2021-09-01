@@ -1,0 +1,11 @@
+version: '3'
+
+services:
+  go-service:
+      build:
+        context: .
+        dockerfile: ./Dockerfile
+      container_name: go-container
+      volumes:
+        - ./application:/go/src/app
+      stdin_open: true
