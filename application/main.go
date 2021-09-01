@@ -3,10 +3,14 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"main/encryptor"
 	"main/user"
 	"os"
+	"os/exec"
 	"strings"
+
+	"github.com/chzyer/readline"
 )
 
 func main() {
@@ -39,14 +43,14 @@ func main() {
 			fmt.Println("Ingresa el nombre del usuario: ")
 			userName, _ := reader.ReadString('\n')
 			fmt.Println("Clave Privada:")
-			fmt.Println(strings.Replace(encryptor.ExportRsaPrivateKeyAsPemStr(searchUserByName(userName, listUsers).PrivateKey), "\n", "!", -1))
+			fmt.Println(encryptor.ExportRsaPrivateKeyAsPemStr(searchUserByName(userName, listUsers).PrivateKey))
 		case "3":
 			fmt.Println("Ingresa el nombre del usuario: ")
 			userName, _ := reader.ReadString('\n')
 			encrypted, _ := encryptor.ExportRsaPublicKeyAsPemStr(searchUserByName(userName, listUsers).PublicKey)
-			encryptedFormatted := strings.Replace(encrypted, "\n", "!", -1)
+			//encryptedFormatted := strings.Replace(encrypted, "\n", "\012", -1)
 			fmt.Println("Clave Publica:")
-			fmt.Println(encryptedFormatted)
+			fmt.Println(encrypted)
 		case "4":
 			// fmt.Println("Ingresa su contraseña: ")
 			// plainPassword, _ := reader.ReadString('\n')
@@ -56,9 +60,44 @@ func main() {
 			plainPassword = strings.Replace(plainPassword, "\n", "", -1)
 
 			fmt.Println("Ingresa su clave publica: ")
-			publicKey, _ := reader.ReadString('\n')
-			publicKey = strings.Replace(publicKey, "\n", "", -1)
-			publicKey = strings.Replace(publicKey, "!", "\n", -1)
+			// publicKey, _ := reader.ReadString('\n')
+			// publicKey = strings.Replace(publicKey, "\n", "", -1)
+			// publicKey = strings.Replace(publicKey, "!", "\n", -1)
+
+			err := exec.Command("rm", "-rf", "/tmp/readline-multiline-public-key").Run()
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			rl, err := readline.NewEx(&readline.Config{
+				Prompt:                 "> ",
+				HistoryFile:            "/tmp/readline-multiline-public-key",
+				DisableAutoSaveHistory: true,
+			})
+			if err != nil {
+				panic(err)
+			}
+			defer rl.Close()
+
+			for {
+				cmd, err := rl.Readline()
+				if err != nil {
+					break
+				}
+				rl.SaveHistory(cmd)
+			}
+
+			lines, err := readLines(rl.Config.HistoryFile)
+
+			publicKey := ""
+
+			if err != nil {
+				log.Fatalf("readLines: %s", err)
+			}
+			for _, line := range lines {
+				publicKey += line
+				publicKey += "\n"
+			}
 
 			fmt.Print(publicKey)
 
@@ -73,14 +112,47 @@ func main() {
 			encryptedPassword, _ := reader.ReadString('\n')
 			encryptedPassword = strings.Replace(encryptedPassword, "\n", "", -1)
 
+			err := exec.Command("rm", "-rf", "/tmp/readline-multiline-private-key").Run()
+			if err != nil {
+				log.Fatal(err)
+			}
+
 			fmt.Println("Ingresa su clave privada: ")
-			privateKey, _ := reader.ReadString('\n')
-			privateKey = strings.Replace(privateKey, "\n", "", -1)
-			privateKey = strings.Replace(privateKey, "!", "\n", -1)
+			rl, err := readline.NewEx(&readline.Config{
+				Prompt:                 "> ",
+				HistoryFile:            "/tmp/readline-multiline-private-key",
+				DisableAutoSaveHistory: true,
+			})
+			if err != nil {
+				panic(err)
+			}
+			defer rl.Close()
+
+			for {
+				cmd, err := rl.Readline()
+				if err != nil {
+					break
+				}
+				rl.SaveHistory(cmd)
+			}
+
+			lines, err := readLines(rl.Config.HistoryFile)
+
+			privateKey := ""
+
+			if err != nil {
+				log.Fatalf("readLines: %s", err)
+			}
+			for _, line := range lines {
+				privateKey += line
+				privateKey += "\n"
+			}
+
+			fmt.Print(privateKey)
 
 			priv_parsed, _ := encryptor.ParseRsaPrivateKeyFromPemStr(privateKey)
 
-			encryptor.Decrypt(priv_parsed, encryptedPassword)
+			//encryptor.Decrypt(priv_parsed, encryptedPassword)
 
 			fmt.Println("\n\nContraseña desencriptada: ", encryptor.Decrypt(priv_parsed, encryptedPassword))
 
@@ -95,7 +167,7 @@ func menu() string {
 
 	reader := bufio.NewReader(os.Stdin)
 
-	fmt.Println("Hola: Ingresa la opción a elegir: ")
+	fmt.Println("Ingresa la opción a elegir: ")
 	fmt.Println("---------------------")
 	fmt.Println("1. Crear nuevo usuario")
 	fmt.Println("2. Obtener llave privada de un usuario")
@@ -124,4 +196,19 @@ func searchUserByName(name string, users []user.User) *user.User {
 		}
 	}
 	return nil
+}
+
+func readLines(path string) ([]string, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	var lines []string
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
+	return lines, scanner.Err()
 }
